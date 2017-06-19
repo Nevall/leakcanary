@@ -16,7 +16,7 @@
 package com.squareup.leakcanary;
 
 import com.squareup.haha.perflib.Instance;
-
+/*泄漏路径节点*/
 final class LeakNode {
   /** May be null. */
   final Exclusion exclusion;

@@ -19,7 +19,7 @@ import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
 
 import static com.squareup.leakcanary.Preconditions.checkNotNull;
-
+/*自定义弱引用*/
 /** @see {@link HeapDump#referenceKey}. */
 final class KeyedWeakReference extends WeakReference<Object> {
   public final String key;

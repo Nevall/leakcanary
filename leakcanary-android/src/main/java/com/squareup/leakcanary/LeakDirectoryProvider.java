@@ -24,6 +24,7 @@ import java.util.List;
  * When using your own implementation, you should also call {@link
  * LeakCanary#setDisplayLeakActivityDirectoryProvider(LeakDirectoryProvider)} to ensure the
  * provided activity is able to display the leaks.
+ * 内存泄露DumpHeap文件路径接口
  */
 public interface LeakDirectoryProvider {
 

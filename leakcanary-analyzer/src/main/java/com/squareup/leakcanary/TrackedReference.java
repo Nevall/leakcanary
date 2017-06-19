@@ -7,6 +7,7 @@ import java.util.List;
 /**
  * An instance tracked by a {@link KeyedWeakReference} that hadn't been cleared when the
  * heap was dumped. May or may not point to a leaking reference.
+ * 栈引用实例
  */
 public class TrackedReference {
 

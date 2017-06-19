@@ -17,6 +17,8 @@ package com.squareup.leakcanary;
 
 import java.io.Serializable;
 
+/*泄漏分析结果实体类*/
+// TODO: 2017/2/11 泄漏分析结果实体类：数据结构（白名单，泄漏对象类名，泄漏最短路径，泄漏大小，泄漏分析使用时长）
 public final class AnalysisResult implements Serializable {
 
   public static AnalysisResult noLeak(long analysisDurationMs) {
@@ -24,16 +26,18 @@ public final class AnalysisResult implements Serializable {
   }
 
   public static AnalysisResult leakDetected(boolean excludedLeak, String className,
-      LeakTrace leakTrace, long retainedHeapSize, long analysisDurationMs) {
+                                            LeakTrace leakTrace, long retainedHeapSize, long analysisDurationMs) {
     return new AnalysisResult(true, excludedLeak, className, leakTrace, null, retainedHeapSize,
-        analysisDurationMs);
+            analysisDurationMs);
   }
 
   public static AnalysisResult failure(Throwable failure, long analysisDurationMs) {
     return new AnalysisResult(false, false, null, null, failure, 0, analysisDurationMs);
   }
 
-  /** True if a leak was found in the heap dump. */
+  /**
+   * True if a leak was found in the heap dump.
+   */
   public final boolean leakFound;
 
   /**
@@ -54,7 +58,9 @@ public final class AnalysisResult implements Serializable {
    */
   public final LeakTrace leakTrace;
 
-  /** Null unless the analysis failed. */
+  /**
+   * Null unless the analysis failed.
+   */
   public final Throwable failure;
 
   /**
@@ -63,11 +69,13 @@ public final class AnalysisResult implements Serializable {
    */
   public final long retainedHeapSize;
 
-  /** Total time spent analyzing the heap. */
+  /**
+   * Total time spent analyzing the heap.
+   */
   public final long analysisDurationMs;
 
   private AnalysisResult(boolean leakFound, boolean excludedLeak, String className,
-      LeakTrace leakTrace, Throwable failure, long retainedHeapSize, long analysisDurationMs) {
+                         LeakTrace leakTrace, Throwable failure, long retainedHeapSize, long analysisDurationMs) {
     this.leakFound = leakFound;
     this.excludedLeak = excludedLeak;
     this.className = className;

@@ -15,6 +15,7 @@
  */
 package com.squareup.leakcanary.internal;
 
+import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.PendingIntent;
@@ -22,6 +23,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -66,7 +68,7 @@ import static com.squareup.leakcanary.BuildConfig.LIBRARY_VERSION;
 import static com.squareup.leakcanary.LeakCanary.leakInfo;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.newSingleThreadExecutor;
 
-@SuppressWarnings("ConstantConditions")
+@SuppressWarnings("ConstantConditions") @TargetApi(Build.VERSION_CODES.HONEYCOMB)
 public final class DisplayLeakActivity extends Activity {
 
   private static LeakDirectoryProvider leakDirectoryProvider = null;
@@ -76,7 +78,7 @@ public final class DisplayLeakActivity extends Activity {
   public static PendingIntent createPendingIntent(Context context) {
     return createPendingIntent(context, null);
   }
-
+  /*创建DisplayLeakActivity页面的PendingIntent*/
   public static PendingIntent createPendingIntent(Context context, String referenceKey) {
     Intent intent = new Intent(context, DisplayLeakActivity.class);
     intent.putExtra(SHOW_LEAK_EXTRA, referenceKey);
@@ -88,6 +90,7 @@ public final class DisplayLeakActivity extends Activity {
     DisplayLeakActivity.leakDirectoryProvider = leakDirectoryProvider;
   }
 
+  /*默认leakDirectoryProvider*/
   private static LeakDirectoryProvider leakDirectoryProvider(Context context) {
     LeakDirectoryProvider leakDirectoryProvider = DisplayLeakActivity.leakDirectoryProvider;
     if (leakDirectoryProvider == null) {
@@ -104,7 +107,6 @@ public final class DisplayLeakActivity extends Activity {
   private TextView failureView;
   private Button actionButton;
 
-  @SuppressWarnings("unchecked")
   @Override protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
 
@@ -117,6 +119,7 @@ public final class DisplayLeakActivity extends Activity {
       }
     }
 
+    //noinspection unchecked
     leaks = (List<Leak>) getLastNonConfigurationInstance();
 
     setContentView(R.layout.leak_canary_display_leak);
@@ -128,6 +131,7 @@ public final class DisplayLeakActivity extends Activity {
     updateUi();
   }
 
+  // No, it's not deprecated. Android lies.
   @Override public Object onRetainNonConfigurationInstance() {
     return leaks;
   }
@@ -139,7 +143,7 @@ public final class DisplayLeakActivity extends Activity {
 
   @Override protected void onResume() {
     super.onResume();
-    LoadLeaks.load(this, leakDirectoryProvider(this));
+    LoadLeaks.load(this, leakDirectoryProvider(this));/*加载保存的HeapDump文件*/
   }
 
   @Override public void setTheme(int resid) {
@@ -154,7 +158,7 @@ public final class DisplayLeakActivity extends Activity {
 
   @Override protected void onDestroy() {
     super.onDestroy();
-    LoadLeaks.forgetActivity();
+    LoadLeaks.forgetActivity();/*释放资源*/
   }
 
   @Override public boolean onCreateOptionsMenu(Menu menu) {
@@ -198,7 +202,7 @@ public final class DisplayLeakActivity extends Activity {
     }
   }
 
-  void shareLeak() {
+  void shareLeak() {/*共享Leak文件*/
     Leak visibleLeak = getVisibleLeak();
     String leakInfo = leakInfo(this, visibleLeak.heapDump, visibleLeak.result, true);
     Intent intent = new Intent(Intent.ACTION_SEND);
@@ -207,7 +211,7 @@ public final class DisplayLeakActivity extends Activity {
     startActivity(Intent.createChooser(intent, getString(R.string.leak_canary_share_with)));
   }
 
-  void shareHeapDump() {
+  void shareHeapDump() {/*共享HeapDump*/
     Leak visibleLeak = getVisibleLeak();
     File heapDumpFile = visibleLeak.heapDump.heapDumpFile;
     heapDumpFile.setReadable(true, false);
@@ -217,7 +221,7 @@ public final class DisplayLeakActivity extends Activity {
     startActivity(Intent.createChooser(intent, getString(R.string.leak_canary_share_with)));
   }
 
-  void deleteVisibleLeak() {
+  void deleteVisibleLeak() {/*移除可见的内存泄漏*/
     Leak visibleLeak = getVisibleLeak();
     File heapDumpFile = visibleLeak.heapDump.heapDumpFile;
     File resultFile = visibleLeak.resultFile;
@@ -234,13 +238,13 @@ public final class DisplayLeakActivity extends Activity {
     updateUi();
   }
 
-  void deleteAllLeaks() {
+  void deleteAllLeaks() {/*删除所有*/
     leakDirectoryProvider(DisplayLeakActivity.this).clearLeakDirectory();
     leaks = Collections.emptyList();
     updateUi();
   }
 
-  void updateUi() {
+  void updateUi() {/*更新Ui*/
     if (leaks == null) {
       setTitle("Loading leaks...");
       return;
@@ -259,7 +263,7 @@ public final class DisplayLeakActivity extends Activity {
     listView.setVisibility(VISIBLE);
     failureView.setVisibility(GONE);
 
-    if (visibleLeak != null) {
+    if (visibleLeak != null) {/*显示Detail页面*/
       AnalysisResult result = visibleLeak.result;
       if (result.failure != null) {
         listView.setVisibility(GONE);
@@ -311,7 +315,7 @@ public final class DisplayLeakActivity extends Activity {
         String className = classSimpleName(result.className);
         setTitle(getString(R.string.leak_canary_class_has_leaked, className, size));
       }
-    } else {
+    } else {/*显示DisplayLeakActivity 主页面*/
       if (listAdapter instanceof LeakListAdapter) {
         ((LeakListAdapter) listAdapter).notifyDataSetChanged();
       } else {
@@ -334,12 +338,12 @@ public final class DisplayLeakActivity extends Activity {
                 android.R.drawable.ic_dialog_alert)
                 .setTitle(R.string.leak_canary_delete_all)
                 .setMessage(R.string.leak_canary_delete_all_leaks_title)
-                .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
                   @Override public void onClick(DialogInterface dialog, int which) {
                     deleteAllLeaks();
                   }
                 })
-                .setNegativeButton(android.R.string.cancel, null)
+                .setNegativeButton(android.R.string.no, null)
                 .show();
           }
         });
@@ -360,6 +364,7 @@ public final class DisplayLeakActivity extends Activity {
     return null;
   }
 
+  /*自定义Adapter*/
   class LeakListAdapter extends BaseAdapter {
 
     @Override public int getCount() {
@@ -421,6 +426,7 @@ public final class DisplayLeakActivity extends Activity {
     }
   }
 
+  /*自定义Runnable，加载保存的HeapDump数据*/
   static class LoadLeaks implements Runnable {
 
     static final List<LoadLeaks> inFlight = new ArrayList<>();
@@ -433,7 +439,7 @@ public final class DisplayLeakActivity extends Activity {
       backgroundExecutor.execute(loadLeaks);
     }
 
-    static void forgetActivity() {
+    static void forgetActivity() {/*释放Activity资源*/
       for (LoadLeaks loadLeaks : inFlight) {
         loadLeaks.activityOrNull = null;
       }
@@ -450,7 +456,7 @@ public final class DisplayLeakActivity extends Activity {
       mainHandler = new Handler(Looper.getMainLooper());
     }
 
-    @Override public void run() {
+    @Override public void run() {/*子线程，读取HeapDump数据*/
       final List<Leak> leaks = new ArrayList<>();
       List<File> files = leakDirectoryProvider.listFiles(new FilenameFilter() {
         @Override public boolean accept(File dir, String filename) {

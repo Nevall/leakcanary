@@ -20,7 +20,7 @@ import com.squareup.leakcanary.internal.HeapAnalyzerService;
 
 import static com.squareup.leakcanary.Preconditions.checkNotNull;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.setEnabled;
-
+/*自定义HeapDump监听器*/
 public final class ServiceHeapDumpListener implements HeapDump.Listener {
 
   private final Context context;
@@ -28,12 +28,13 @@ public final class ServiceHeapDumpListener implements HeapDump.Listener {
 
   public ServiceHeapDumpListener(Context context,
       Class<? extends AbstractAnalysisResultService> listenerServiceClass) {
-    setEnabled(context, listenerServiceClass, true);
-    setEnabled(context, HeapAnalyzerService.class, true);
+    setEnabled(context, listenerServiceClass, true);/*添加service 组件*/
+    setEnabled(context, HeapAnalyzerService.class, true);/*添加service 组件*/
     this.listenerServiceClass = checkNotNull(listenerServiceClass, "listenerServiceClass");
     this.context = checkNotNull(context, "context").getApplicationContext();
   }
 
+  // TODO: 2017/2/10 内存泄漏，启动分析内存泄漏的Service （14）
   @Override public void analyze(HeapDump heapDump) {
     checkNotNull(heapDump, "heapDump");
     HeapAnalyzerService.runAnalysis(context, heapDump, listenerServiceClass);

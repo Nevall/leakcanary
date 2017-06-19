@@ -1,47 +1,27 @@
 buildscript {
   repositories {
-    jcenter()
-    maven { url 'https://plugins.gradle.org/m2/' }
+    mavenCentral()
   }
   dependencies {
-    classpath 'com.android.tools.build:gradle:2.3.0'
-    classpath 'net.ltgt.gradle:gradle-errorprone-plugin:0.0.10'
+    classpath 'com.android.tools.build:gradle:2.3.2'
   }
 }
 
 subprojects {
   repositories {
-    jcenter()
+    mavenCentral()
 //    maven {
 //      url 'https://oss.sonatype.org/content/repositories/snapshots/'
 //    }
 //    mavenLocal()
   }
-
-  apply plugin: 'net.ltgt.errorprone'
-
-  tasks.withType(JavaCompile) {
-    options.compilerArgs += ['-Xlint:all',
-                             '-Xlint:-serial',
-                             '-Xlint:-deprecation',
-                             '-Werror']
-  }
-
-  tasks.withType(Test) {
-    testLogging {
-      exceptionFormat 'FULL'
-      showCauses true
-      showExceptions true
-      showStackTraces true
-    }
-  }
 }
 
 ext {
   minSdkVersion = 14
-  compileSdkVersion = 25
+  compileSdkVersion = 23
   targetSdkVersion = compileSdkVersion
-  buildToolsVersion = '25.0.2'
+  buildToolsVersion = '23.0.2'
   javaVersion = JavaVersion.VERSION_1_7
 
   GROUP = 'com.squareup.leakcanary'

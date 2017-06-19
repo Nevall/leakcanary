@@ -45,6 +45,7 @@ import static com.squareup.leakcanary.LeakTraceElement.Type.STATIC_FIELD;
  * Finds the shortest path from a leaking reference to a gc root, ignoring excluded
  * refs first and then including the ones that are not "always ignorable" as needed if no path is
  * found.
+ * 找到白名单外的内存泄漏对象到GC根的最短路径
  */
 final class ShortestPathFinder {
 
@@ -75,15 +76,17 @@ final class ShortestPathFinder {
     }
   }
 
+  /*查找从泄漏对象到GC根的最短路径*/
+  // TODO: 2017/2/11 查找从泄漏对象到GC根的最短路径 （16-4）
   Result findPath(Snapshot snapshot, Instance leakingRef) {
     clearState();
     canIgnoreStrings = !isString(leakingRef);
-
+    /*将HeapDump快照中的对象分类入队*/
     enqueueGcRoots(snapshot);
 
     boolean excludingKnownLeaks = false;
     LeakNode leakingNode = null;
-    while (!toVisitQueue.isEmpty() || !toVisitIfNoPathQueue.isEmpty()) {
+    while (!toVisitQueue.isEmpty() || !toVisitIfNoPathQueue.isEmpty()) {/*查找从泄漏对象到GC根的最短路径*/
       LeakNode node;
       if (!toVisitQueue.isEmpty()) {
         node = toVisitQueue.poll();
@@ -120,6 +123,7 @@ final class ShortestPathFinder {
     return new Result(leakingNode, excludingKnownLeaks);
   }
 
+  /*重置数据*/
   private void clearState() {
     toVisitQueue.clear();
     toVisitIfNoPathQueue.clear();
@@ -128,6 +132,7 @@ final class ShortestPathFinder {
     visitedSet.clear();
   }
 
+  /*将HeapDump快照中的对象分类入队*/
   private void enqueueGcRoots(Snapshot snapshot) {
     for (RootObj rootObj : snapshot.getGCRoots()) {
       switch (rootObj.getRootType()) {
@@ -279,6 +284,7 @@ final class ShortestPathFinder {
     }
   }
 
+  /*将对象分类入队*/
   private void enqueue(Exclusion exclusion, LeakNode parent, Instance child, String referenceName,
       LeakTraceElement.Type referenceType) {
     if (child == null) {

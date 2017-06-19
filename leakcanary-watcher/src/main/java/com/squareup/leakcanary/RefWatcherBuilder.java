@@ -4,7 +4,7 @@ package com.squareup.leakcanary;
  * Responsible for building {@link RefWatcher} instances. Subclasses should provide sane defaults
  * for the platform they support.
  */
-public class RefWatcherBuilder<T extends RefWatcherBuilder<T>> {
+public class RefWatcherBuilder<T extends RefWatcherBuilder> {
 
   private ExcludedRefs excludedRefs;
   private HeapDump.Listener heapDumpListener;
@@ -49,28 +49,31 @@ public class RefWatcherBuilder<T extends RefWatcherBuilder<T>> {
     return self();
   }
 
-  /** Creates a {@link RefWatcher}. */
+  /** Creates a {@link RefWatcher}.
+   * 创建一个Activity 的RefWatcher 
+   * 初始化数据*/
+  // TODO: 2017/2/10 创建一个Activity 的RefWatcher （5）
   public final RefWatcher build() {
     if (isDisabled()) {
       return RefWatcher.DISABLED;
     }
 
-    ExcludedRefs excludedRefs = this.excludedRefs;
+    ExcludedRefs excludedRefs = this.excludedRefs;/*内存泄露白名单:过滤ASOP引发的内存泄露*/
     if (excludedRefs == null) {
       excludedRefs = defaultExcludedRefs();
     }
 
-    HeapDump.Listener heapDumpListener = this.heapDumpListener;
+    HeapDump.Listener heapDumpListener = this.heapDumpListener;/*DumpHeap监听*/
     if (heapDumpListener == null) {
       heapDumpListener = defaultHeapDumpListener();
     }
 
-    DebuggerControl debuggerControl = this.debuggerControl;
+    DebuggerControl debuggerControl = this.debuggerControl;/*Debugger 控制类*/
     if (debuggerControl == null) {
       debuggerControl = defaultDebuggerControl();
     }
 
-    HeapDumper heapDumper = this.heapDumper;
+    HeapDumper heapDumper = this.heapDumper;/*HeapDumper*/
     if (heapDumper == null) {
       heapDumper = defaultHeapDumper();
     }
@@ -80,11 +83,11 @@ public class RefWatcherBuilder<T extends RefWatcherBuilder<T>> {
       watchExecutor = defaultWatchExecutor();
     }
 
-    GcTrigger gcTrigger = this.gcTrigger;
+    GcTrigger gcTrigger = this.gcTrigger;/*GC触发器*/
     if (gcTrigger == null) {
       gcTrigger = defaultGcTrigger();
     }
-
+    /*创建RefWatcher*/
     return new RefWatcher(watchExecutor, debuggerControl, gcTrigger, heapDumper, heapDumpListener,
         excludedRefs);
   }
@@ -117,8 +120,8 @@ public class RefWatcherBuilder<T extends RefWatcherBuilder<T>> {
     return WatchExecutor.NONE;
   }
 
-  @SuppressWarnings("unchecked")
   protected final T self() {
+    //noinspection unchecked
     return (T) this;
   }
 }

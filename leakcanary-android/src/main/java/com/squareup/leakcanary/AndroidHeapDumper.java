@@ -27,10 +27,10 @@ import com.squareup.leakcanary.internal.FutureResult;
 import java.io.File;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
-
+/*堆内存镜像控制类*/
 public final class AndroidHeapDumper implements HeapDumper {
 
-  final Context context;
+  private final Context context;
   private final LeakDirectoryProvider leakDirectoryProvider;
   private final Handler mainHandler;
 
@@ -40,26 +40,25 @@ public final class AndroidHeapDumper implements HeapDumper {
     mainHandler = new Handler(Looper.getMainLooper());
   }
 
-
-  @SuppressWarnings("ReferenceEquality") // Explicitly checking for named null.
+  // TODO: 2017/2/10 创建保存堆内存镜像 （13） 
   @Override public File dumpHeap() {
-    File heapDumpFile = leakDirectoryProvider.newHeapDumpFile();
+    File heapDumpFile = leakDirectoryProvider.newHeapDumpFile();/*创建DumpHeap文件*/
 
     if (heapDumpFile == RETRY_LATER) {
       return RETRY_LATER;
     }
 
     FutureResult<Toast> waitingForToast = new FutureResult<>();
-    showToast(waitingForToast);
+    showToast(waitingForToast);/*显示DumpHeap 提示*/
 
-    if (!waitingForToast.wait(5, SECONDS)) {
+    if (!waitingForToast.wait(5, SECONDS)) {/*超过5s，返回*/
       CanaryLog.d("Did not dump heap, too much time waiting for Toast.");
       return RETRY_LATER;
     }
 
     Toast toast = waitingForToast.get();
     try {
-      Debug.dumpHprofData(heapDumpFile.getAbsolutePath());
+      Debug.dumpHprofData(heapDumpFile.getAbsolutePath());/*创建堆内存镜像*/
       cancelToast(toast);
       return heapDumpFile;
     } catch (Exception e) {
@@ -68,7 +67,7 @@ public final class AndroidHeapDumper implements HeapDumper {
       return RETRY_LATER;
     }
   }
-
+  /*现在正在DumpHeap提示*/
   private void showToast(final FutureResult<Toast> waitingForToast) {
     mainHandler.post(new Runnable() {
       @Override public void run() {
@@ -88,7 +87,7 @@ public final class AndroidHeapDumper implements HeapDumper {
       }
     });
   }
-
+  /*取消Toast*/
   private void cancelToast(final Toast toast) {
     mainHandler.post(new Runnable() {
       @Override public void run() {

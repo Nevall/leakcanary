@@ -15,24 +15,29 @@
  */
 package com.squareup.leakcanary;
 
+import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.Application;
 import android.os.Bundle;
 
+import static android.os.Build.VERSION.SDK_INT;
+import static android.os.Build.VERSION_CODES.ICE_CREAM_SANDWICH;
 import static com.squareup.leakcanary.Preconditions.checkNotNull;
+/*Activity 引用监控类*/
+@TargetApi(ICE_CREAM_SANDWICH) public final class ActivityRefWatcher {
 
-public final class ActivityRefWatcher {
-
-  /** @deprecated Use {@link #install(Application, RefWatcher)}. */
-  @Deprecated
+    /*添加Activity监听*/
+    // TODO: 2017/2/10 添加Activity对象监听 （7）
   public static void installOnIcsPlus(Application application, RefWatcher refWatcher) {
-    install(application, refWatcher);
+    if (SDK_INT < ICE_CREAM_SANDWICH) {
+      // If you need to support Android < ICS, override onDestroy() in your base activity.
+      return;
+    }
+    ActivityRefWatcher activityRefWatcher = new ActivityRefWatcher(application, refWatcher);
+    activityRefWatcher.watchActivities();
   }
 
-  public static void install(Application application, RefWatcher refWatcher) {
-    new ActivityRefWatcher(application, refWatcher).watchActivities();
-  }
-
+    /*Activity生命周期回调*/
   private final Application.ActivityLifecycleCallbacks lifecycleCallbacks =
       new Application.ActivityLifecycleCallbacks() {
         @Override public void onActivityCreated(Activity activity, Bundle savedInstanceState) {
@@ -65,7 +70,7 @@ public final class ActivityRefWatcher {
    * Constructs an {@link ActivityRefWatcher} that will make sure the activities are not leaking
    * after they have been destroyed.
    */
-  public ActivityRefWatcher(Application application, RefWatcher refWatcher) {
+  public ActivityRefWatcher(Application application, final RefWatcher refWatcher) {
     this.application = checkNotNull(application, "application");
     this.refWatcher = checkNotNull(refWatcher, "refWatcher");
   }
@@ -74,10 +79,11 @@ public final class ActivityRefWatcher {
     refWatcher.watch(activity);
   }
 
+    // TODO: 2017/2/10 注册Activity的生命周期，监控Activity对象 （8）
   public void watchActivities() {
     // Make sure you don't get installed twice.
     stopWatchingActivities();
-    application.registerActivityLifecycleCallbacks(lifecycleCallbacks);
+    application.registerActivityLifecycleCallbacks(lifecycleCallbacks);/*注册Activity生命周期监听*/
   }
 
   public void stopWatchingActivities() {

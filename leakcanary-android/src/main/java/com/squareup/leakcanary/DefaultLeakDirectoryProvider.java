@@ -36,7 +36,7 @@ import static android.os.Build.VERSION_CODES.M;
 import static android.os.Environment.DIRECTORY_DOWNLOADS;
 import static com.squareup.leakcanary.HeapDumper.RETRY_LATER;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.showNotification;
-
+/*默认内存泄露DumpHeap文件/文件路径提供者*/
 public final class DefaultLeakDirectoryProvider implements LeakDirectoryProvider {
 
   private static final int DEFAULT_MAX_STORED_HEAP_DUMPS = 7;
@@ -65,6 +65,7 @@ public final class DefaultLeakDirectoryProvider implements LeakDirectoryProvider
     this.maxStoredHeapDumps = maxStoredHeapDumps;
   }
 
+  /*根据文件名过滤文件 */
   @Override public List<File> listFiles(FilenameFilter filter) {
     if (!hasStoragePermission()) {
       requestWritePermissionNotification();
@@ -83,8 +84,10 @@ public final class DefaultLeakDirectoryProvider implements LeakDirectoryProvider
     return files;
   }
 
+  /*创建新的HeapDumpFile*/
+  // TODO: 2017/2/10 创建堆内存镜像 文件路径 (13-1) 
   @Override public File newHeapDumpFile() {
-    List<File> pendingHeapDumps = listFiles(new FilenameFilter() {
+    List<File> pendingHeapDumps = listFiles(new FilenameFilter() {/*列出路径下所有HeapDump文件*/
       @Override public boolean accept(File dir, String filename) {
         return filename.endsWith(PENDING_HEAPDUMP_SUFFIX);
       }
@@ -93,23 +96,23 @@ public final class DefaultLeakDirectoryProvider implements LeakDirectoryProvider
     // If a new heap dump file has been created recently and hasn't been processed yet, we skip.
     // Otherwise we move forward and assume that the analyzer process crashes. The file will
     // eventually be removed with heap dump file rotation.
-    for (File file : pendingHeapDumps) {
+    for (File file : pendingHeapDumps) {/*少于时间间隔10分钟；直接返回*/
       if (System.currentTimeMillis() - file.lastModified() < ANALYSIS_MAX_DURATION_MS) {
         CanaryLog.d("Could not dump heap, previous analysis still is in progress.");
         return RETRY_LATER;
       }
     }
 
-    cleanupOldHeapDumps();
+    cleanupOldHeapDumps();/*HeapDumps文件过多时，删除旧的文件*/
 
     File storageDirectory = externalStorageDirectory();
-    if (!directoryWritableAfterMkdirs(storageDirectory)) {
-      if (!hasStoragePermission()) {
+    if (!directoryWritableAfterMkdirs(storageDirectory)) {/*无法创建文件HeapDumps文件*/
+      if (!hasStoragePermission()) {/*申请读写文件权限*/
         CanaryLog.d("WRITE_EXTERNAL_STORAGE permission not granted");
         requestWritePermissionNotification();
       } else {
         String state = Environment.getExternalStorageState();
-        if (!Environment.MEDIA_MOUNTED.equals(state)) {
+        if (!Environment.MEDIA_MOUNTED.equals(state)) {/*SD存储还没挂载*/
           CanaryLog.d("External storage not mounted, state: %s", state);
         } else {
           CanaryLog.d("Could not create heap dump directory in external storage: [%s]",
@@ -129,6 +132,7 @@ public final class DefaultLeakDirectoryProvider implements LeakDirectoryProvider
     return new File(storageDirectory, UUID.randomUUID().toString() + PENDING_HEAPDUMP_SUFFIX);
   }
 
+  /*清除HeapDumps文件*/
   @Override public void clearLeakDirectory() {
     List<File> allFilesExceptPending = listFiles(new FilenameFilter() {
       @Override public boolean accept(File dir, String filename) {
@@ -142,7 +146,7 @@ public final class DefaultLeakDirectoryProvider implements LeakDirectoryProvider
       }
     }
   }
-
+  /*判断是否有读写文件权限*/
   @TargetApi(M) private boolean hasStoragePermission() {
     if (SDK_INT < M) {
       return true;
@@ -156,6 +160,7 @@ public final class DefaultLeakDirectoryProvider implements LeakDirectoryProvider
     return writeExternalStorageGranted;
   }
 
+  /*申请读写权限*/
   private void requestWritePermissionNotification() {
     if (permissionNotificationDisplayed) {
       return;
@@ -169,7 +174,7 @@ public final class DefaultLeakDirectoryProvider implements LeakDirectoryProvider
         context.getString(R.string.leak_canary_permission_notification_text, packageName);
     showNotification(context, contentTitle, contentText, pendingIntent, 0xDEAFBEEF);
   }
-
+  /*默认文件路径*/
   private File externalStorageDirectory() {
     File downloadsDirectory = Environment.getExternalStoragePublicDirectory(DIRECTORY_DOWNLOADS);
     return new File(downloadsDirectory, "leakcanary-" + context.getPackageName());
@@ -179,12 +184,13 @@ public final class DefaultLeakDirectoryProvider implements LeakDirectoryProvider
     File appFilesDirectory = context.getFilesDir();
     return new File(appFilesDirectory, "leakcanary");
   }
-
+  /*创建文件夹*/
   private boolean directoryWritableAfterMkdirs(File directory) {
     boolean success = directory.mkdirs();
     return (success || directory.exists()) && directory.canWrite();
   }
 
+  /*HeapDumps文件过多时，删除旧的HeapDump文件*/
   private void cleanupOldHeapDumps() {
     List<File> hprofFiles = listFiles(new FilenameFilter() {
       @Override public boolean accept(File dir, String filename) {

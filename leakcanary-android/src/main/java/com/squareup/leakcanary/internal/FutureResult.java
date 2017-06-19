@@ -18,7 +18,7 @@ package com.squareup.leakcanary.internal;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-
+/*自定义线程等待及获取线程结果*/
 public final class FutureResult<T> {
 
   private final AtomicReference<T> resultHolder;

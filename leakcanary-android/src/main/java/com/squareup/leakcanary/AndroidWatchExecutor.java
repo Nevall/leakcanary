@@ -19,14 +19,14 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.MessageQueue;
-import java.util.concurrent.TimeUnit;
 
 import static com.squareup.leakcanary.Retryable.Result.RETRY;
 
 /**
  * {@link WatchExecutor} suitable for watching Android reference leaks. This executor waits for the
- * main thread to be idle then posts to a serial background thread with the delay specified by
- * {@link AndroidRefWatcherBuilder#watchDelay(long, TimeUnit)}.
+ * main thread to be idle then posts to a serial background thread with a delay of
+ * {@link R.integer#leak_canary_watch_delay_millis} seconds.
+ * AndroidWatch执行类，用于异步执行程序，类似线程池管理类
  */
 public final class AndroidWatchExecutor implements WatchExecutor {
 
@@ -37,23 +37,27 @@ public final class AndroidWatchExecutor implements WatchExecutor {
   private final long maxBackoffFactor;
 
   public AndroidWatchExecutor(long initialDelayMillis) {
-    mainHandler = new Handler(Looper.getMainLooper());
+    mainHandler = new Handler(Looper.getMainLooper());/*主线程*/
     HandlerThread handlerThread = new HandlerThread(LEAK_CANARY_THREAD_NAME);
     handlerThread.start();
-    backgroundHandler = new Handler(handlerThread.getLooper());
-    this.initialDelayMillis = initialDelayMillis;
+    backgroundHandler = new Handler(handlerThread.getLooper());/*后台线程*/
+    this.initialDelayMillis = initialDelayMillis;/*延时间隔*/
     maxBackoffFactor = Long.MAX_VALUE / initialDelayMillis;
   }
 
+  /*后台执行Retryable
+  * 1、当主线程空闲时，在主线程中添加一个空闲后台线程*/
+  // TODO: 2017/2/10 当主线程空闲时，在主线程中添加一个空闲后台线程（10），执行程序
   @Override public void execute(Retryable retryable) {
     if (Looper.getMainLooper().getThread() == Thread.currentThread()) {
-      waitForIdle(retryable, 0);
+      waitForIdle(retryable, 0);/*等待线程主线程空闲*/
     } else {
       postWaitForIdle(retryable, 0);
     }
   }
 
-  void postWaitForIdle(final Retryable retryable, final int failedAttempts) {
+  /*在主线程空闲时添加后台线程*/
+  private void postWaitForIdle(final Retryable retryable, final int failedAttempts) {
     mainHandler.post(new Runnable() {
       @Override public void run() {
         waitForIdle(retryable, failedAttempts);
@@ -71,7 +75,9 @@ public final class AndroidWatchExecutor implements WatchExecutor {
     });
   }
 
-  void postToBackgroundWithDelay(final Retryable retryable, final int failedAttempts) {
+  /*添加后台线程执行Retryable 的run()方法
+  * 若RETRY 则延时重新执行*/
+  private void postToBackgroundWithDelay(final Retryable retryable, final int failedAttempts) {
     long exponentialBackoffFactor = (long) Math.min(Math.pow(2, failedAttempts), maxBackoffFactor);
     long delayMillis = initialDelayMillis * exponentialBackoffFactor;
     backgroundHandler.postDelayed(new Runnable() {

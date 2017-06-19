@@ -32,10 +32,11 @@ import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static android.os.Build.VERSION_CODES.M;
 import static android.widget.Toast.LENGTH_LONG;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.setEnabledBlocking;
-
+/*申请读取Storage文件权限界面,检测读取文件权限*/
 @TargetApi(M) //
 public class RequestStoragePermissionActivity extends Activity {
 
+  /*创建PendingIntent*/
   public static PendingIntent createPendingIntent(Context context) {
     setEnabledBlocking(context, RequestStoragePermissionActivity.class, true);
     Intent intent = new Intent(context, RequestStoragePermissionActivity.class);

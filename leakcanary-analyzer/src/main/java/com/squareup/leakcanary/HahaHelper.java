@@ -19,11 +19,9 @@ import com.squareup.haha.perflib.ArrayInstance;
 import com.squareup.haha.perflib.ClassInstance;
 import com.squareup.haha.perflib.ClassObj;
 import com.squareup.haha.perflib.Field;
+import com.squareup.haha.perflib.Heap;
 import com.squareup.haha.perflib.Instance;
 import com.squareup.haha.perflib.Type;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.nio.charset.Charset;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -31,7 +29,7 @@ import java.util.Set;
 
 import static com.squareup.leakcanary.Preconditions.checkNotNull;
 import static java.util.Arrays.asList;
-
+/*HaHa库工具类*/
 public final class HahaHelper {
 
   private static final Set<String> WRAPPER_TYPES = new HashSet<>(
@@ -47,10 +45,12 @@ public final class HahaHelper {
     return fieldToString(fieldValue.getField(), fieldValue.getValue());
   }
 
+  /*属性名*/
   static String fieldToString(Field field, Object value) {
     return field.getName() + " = " + value;
   }
 
+  /*线程名*/
   static String threadName(Instance holder) {
     List<ClassInstance.FieldValue> values = classInstanceValues(holder);
     Object nameField = fieldValue(values, "name");
@@ -62,6 +62,7 @@ public final class HahaHelper {
     return asString(nameField);
   }
 
+  /*是否为线程类的子类*/
   static boolean extendsThread(ClassObj clazz) {
     boolean extendsThread = false;
     ClassObj parentClass = clazz;
@@ -75,24 +76,17 @@ public final class HahaHelper {
     return extendsThread;
   }
 
+  /*转为字符串{UUID}*/
   static String asString(Object stringObject) {
     Instance instance = (Instance) stringObject;
     List<ClassInstance.FieldValue> values = classInstanceValues(instance);
 
     Integer count = fieldValue(values, "count");
-    checkNotNull(count, "count");
-    if (count == 0) {
-      return "";
-    }
-
     Object value = fieldValue(values, "value");
-    checkNotNull(value, "value");
-
     Integer offset;
-    ArrayInstance array;
+    ArrayInstance charArray;
     if (isCharArray(value)) {
-      array = (ArrayInstance) value;
-
+      charArray = (ArrayInstance) value;
       offset = 0;
       // < API 23
       // As of Marshmallow, substrings no longer share their parent strings' char arrays
@@ -100,34 +94,38 @@ public final class HahaHelper {
       // https://android-review.googlesource.com/#/c/83611/
       if (hasField(values, "offset")) {
         offset = fieldValue(values, "offset");
-        checkNotNull(offset, "offset");
-      }
-
-      char[] chars = array.asCharArray(offset, count);
-      return new String(chars);
-    } else if (isByteArray(value)) {
-      // In API 26, Strings are now internally represented as byte arrays.
-      array = (ArrayInstance) value;
-
-      // HACK - remove when HAHA's perflib is updated to https://goo.gl/Oe7ZwO.
-      try {
-        Method asRawByteArray =
-            ArrayInstance.class.getDeclaredMethod("asRawByteArray", int.class, int.class);
-        asRawByteArray.setAccessible(true);
-        byte[] rawByteArray = (byte[]) asRawByteArray.invoke(array, 0, count);
-        return new String(rawByteArray, Charset.forName("UTF-8"));
-      } catch (NoSuchMethodException e) {
-        throw new RuntimeException(e);
-      } catch (IllegalAccessException e) {
-        throw new RuntimeException(e);
-      } catch (InvocationTargetException e) {
-        throw new RuntimeException(e);
       }
     } else {
-      throw new UnsupportedOperationException("Could not find char array in " + instance);
+      // In M preview 2, the underlying char buffer resides in the heap with ID equaling the
+      // String's ID + 16.
+      // https://android-review.googlesource.com/#/c/160380/2/android/src/com/android/tools/idea/
+      // editors/hprof/descriptors/InstanceFieldDescriptorImpl.java
+      // This workaround is only needed for M preview 2, as it has been fixed on the hprof
+      // generation end by reintroducing a virtual "value" variable.
+      // https://android.googlesource.com/platform/art/+/master/runtime/hprof/hprof.cc#1242
+      Heap heap = instance.getHeap();
+      Instance inlineInstance = heap.getInstance(instance.getId() + 16);
+      if (isCharArray(inlineInstance)) {
+        charArray = (ArrayInstance) inlineInstance;
+        offset = 0;
+      } else {
+        throw new UnsupportedOperationException("Could not find char array in " + instance);
+      }
     }
+    checkNotNull(count, "count");
+    checkNotNull(charArray, "charArray");
+    checkNotNull(offset, "offset");
+
+    if (count == 0) {
+      return "";
+    }
+
+    char[] chars = charArray.asCharArray(offset, count);
+
+    return new String(chars);
   }
 
+  /*是否为八种基本数据类型*/
   public static boolean isPrimitiveWrapper(Object value) {
     if (!(value instanceof ClassInstance)) {
       return false;
@@ -135,6 +133,7 @@ public final class HahaHelper {
     return WRAPPER_TYPES.contains(((ClassInstance) value).getClassObj().getClassName());
   }
 
+  /*是否为基本类型数组*/
   public static boolean isPrimitiveOrWrapperArray(Object value) {
     if (!(value instanceof ArrayInstance)) {
       return false;
@@ -146,29 +145,29 @@ public final class HahaHelper {
     return WRAPPER_TYPES.contains(arrayInstance.getClassObj().getClassName());
   }
 
+  /*是否为字符串数组*/
   private static boolean isCharArray(Object value) {
     return value instanceof ArrayInstance && ((ArrayInstance) value).getArrayType() == Type.CHAR;
   }
 
-  private static boolean isByteArray(Object value) {
-    return value instanceof ArrayInstance && ((ArrayInstance) value).getArrayType() == Type.BYTE;
-  }
-
+  /*获取对象值*/
   static List<ClassInstance.FieldValue> classInstanceValues(Instance instance) {
     ClassInstance classInstance = (ClassInstance) instance;
     return classInstance.getValues();
   }
 
-  @SuppressWarnings({ "unchecked", "TypeParameterUnusedInFormals" })
+  /*获取属性值*/
   static <T> T fieldValue(List<ClassInstance.FieldValue> values, String fieldName) {
     for (ClassInstance.FieldValue fieldValue : values) {
       if (fieldValue.getField().getName().equals(fieldName)) {
+        //noinspection unchecked
         return (T) fieldValue.getValue();
       }
     }
     throw new IllegalArgumentException("Field " + fieldName + " does not exists");
   }
 
+  /*类内是否有某属性*/
   static boolean hasField(List<ClassInstance.FieldValue> values, String fieldName) {
     for (ClassInstance.FieldValue fieldValue : values) {
       if (fieldValue.getField().getName().equals(fieldName)) {

@@ -37,16 +37,18 @@ import static com.squareup.leakcanary.internal.LeakCanaryInternals.showNotificat
  *
  * You can extend this class and override {@link #afterDefaultHandling(HeapDump, AnalysisResult,
  * String)} to add custom behavior, e.g. uploading the heap dump.
+ * 内存泄露分析结果监听Service，用于显示内存泄漏结果提示页面 {@link DisplayLeakActivity}
  */
 public class DisplayLeakService extends AbstractAnalysisResultService {
 
+  // TODO: 2017/2/11 处理内存泄漏分析结果，弹出Notification提示 跳入DisplayLeakActivity（15-3） 
   @Override protected final void onHeapAnalyzed(HeapDump heapDump, AnalysisResult result) {
-    String leakInfo = leakInfo(this, heapDump, result, true);
-    CanaryLog.d("%s", leakInfo);
+    String leakInfo = leakInfo(this, heapDump, result, true);/*解析内存泄漏分析结果,转换为字符串*/
+    CanaryLog.d(leakInfo);
 
     boolean resultSaved = false;
     boolean shouldSaveResult = result.leakFound || result.failure != null;
-    if (shouldSaveResult) {
+    if (shouldSaveResult) {/*从命名HeapDump文件并保存HeapDump文件及内存泄漏分析结果*/
       heapDump = renameHeapdump(heapDump);
       resultSaved = saveResult(heapDump, result);
     }
@@ -59,7 +61,7 @@ public class DisplayLeakService extends AbstractAnalysisResultService {
       contentTitle = getString(R.string.leak_canary_no_leak_title);
       contentText = getString(R.string.leak_canary_no_leak_text);
       pendingIntent = null;
-    } else if (resultSaved) {
+    } else if (resultSaved) {/*弹出Notification提示*/
       pendingIntent = DisplayLeakActivity.createPendingIntent(this, heapDump.referenceKey);
 
       if (result.failure == null) {
@@ -81,10 +83,12 @@ public class DisplayLeakService extends AbstractAnalysisResultService {
     }
     // New notification id every second.
     int notificationId = (int) (SystemClock.uptimeMillis() / 1000);
+    /*显示内存泄漏的Notification*/
     showNotification(this, contentTitle, contentText, pendingIntent, notificationId);
     afterDefaultHandling(heapDump, result, leakInfo);
   }
 
+  /*保存内存泄漏的HeapDump文件及内存泄漏分析结果*/
   private boolean saveResult(HeapDump heapDump, AnalysisResult result) {
     File resultFile = new File(heapDump.heapDumpFile.getParentFile(),
         heapDump.heapDumpFile.getName() + ".result");
@@ -108,6 +112,7 @@ public class DisplayLeakService extends AbstractAnalysisResultService {
     return false;
   }
 
+  /*重命名HeapDump文件*/
   private HeapDump renameHeapdump(HeapDump heapDump) {
     String fileName =
         new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss_SSS'.hprof'", Locale.US).format(new Date());

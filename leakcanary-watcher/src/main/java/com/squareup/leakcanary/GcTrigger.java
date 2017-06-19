@@ -19,10 +19,11 @@ package com.squareup.leakcanary;
  * Called when a watched reference is expected to be weakly reachable, but hasn't been enqueued
  * in the reference queue yet. This gives the application a hook to run the GC before the {@link
  * RefWatcher} checks the reference queue again, to avoid taking a heap dump if possible.
+ * GC触发器
  */
 public interface GcTrigger {
   GcTrigger DEFAULT = new GcTrigger() {
-    @Override public void runGc() {
+    @Override public void runGc() {// TODO: 2017/2/10 触发GC (12) 
       // Code taken from AOSP FinalizationTest:
       // https://android.googlesource.com/platform/libcore/+/master/support/src/test/java/libcore/
       // java/lang/ref/FinalizationTester.java

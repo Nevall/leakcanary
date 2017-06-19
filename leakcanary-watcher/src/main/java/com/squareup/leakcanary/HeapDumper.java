@@ -17,7 +17,9 @@ package com.squareup.leakcanary;
 
 import java.io.File;
 
-/** Dumps the heap into a file. */
+/** Dumps the heap into a file.
+ * 堆内存镜像控制类 */
+
 public interface HeapDumper {
   HeapDumper NONE = new HeapDumper() {
     @Override public File dumpHeap() {

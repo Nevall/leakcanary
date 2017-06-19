@@ -21,7 +21,9 @@ public final class AndroidRefWatcherBuilder extends RefWatcherBuilder<AndroidRef
   /**
    * Sets a custom {@link AbstractAnalysisResultService} to listen to analysis results. This
    * overrides any call to {@link #heapDumpListener(HeapDump.Listener)}.
+   * 添加监听
    */
+  // TODO: 2017/2/10 添加监听 （2）
   public AndroidRefWatcherBuilder listenerServiceClass(
       Class<? extends AbstractAnalysisResultService> listenerServiceClass) {
     return heapDumpListener(new ServiceHeapDumpListener(context, listenerServiceClass));
@@ -31,6 +33,7 @@ public final class AndroidRefWatcherBuilder extends RefWatcherBuilder<AndroidRef
    * Sets a custom delay for how long the {@link RefWatcher} should wait until it checks if a
    * tracked object has been garbage collected. This overrides any call to {@link
    * #watchExecutor(WatchExecutor)}.
+   * 设置延时,等待跟踪对象呗垃圾回收
    */
   public AndroidRefWatcherBuilder watchDelay(long delay, TimeUnit unit) {
     return watchExecutor(new AndroidWatchExecutor(unit.toMillis(delay)));
@@ -42,6 +45,7 @@ public final class AndroidRefWatcherBuilder extends RefWatcherBuilder<AndroidRef
    * {@link LeakCanary#setDisplayLeakActivityDirectoryProvider(LeakDirectoryProvider)})}
    *
    * @throws IllegalArgumentException if maxStoredHeapDumps < 1.
+   * 设置HeapDumps文最多数量
    */
   public AndroidRefWatcherBuilder maxStoredHeapDumps(int maxStoredHeapDumps) {
     LeakDirectoryProvider leakDirectoryProvider =
@@ -52,33 +56,38 @@ public final class AndroidRefWatcherBuilder extends RefWatcherBuilder<AndroidRef
 
   /**
    * Creates a {@link RefWatcher} instance and starts watching activity references (on ICS+).
+   * 创建RefWatcher，监控Activity 对象
    */
+  // TODO: 2017/2/10 创建RefWatcher，监控Activity对象 （4） 
   public RefWatcher buildAndInstall() {
     RefWatcher refWatcher = build();
     if (refWatcher != DISABLED) {
-      LeakCanary.enableDisplayLeakActivity(context);
-      ActivityRefWatcher.install((Application) context, refWatcher);
+      LeakCanary.enableDisplayLeakActivity(context);/*设置显示Notification提示*/
+      ActivityRefWatcher.installOnIcsPlus((Application) context, refWatcher);/*开始添加监听*/
     }
     return refWatcher;
   }
 
+  /*是否禁用，在分析数据进程时返回true*/
   @Override protected boolean isDisabled() {
     return LeakCanary.isInAnalyzerProcess(context);
   }
 
+  /*创建默认HeapDumper*/
   @Override protected HeapDumper defaultHeapDumper() {
     LeakDirectoryProvider leakDirectoryProvider = new DefaultLeakDirectoryProvider(context);
     return new AndroidHeapDumper(context, leakDirectoryProvider);
   }
 
+  /*创建Debug Control*/
   @Override protected DebuggerControl defaultDebuggerControl() {
     return new AndroidDebuggerControl();
   }
-
+  /*创建默认Listener*/
   @Override protected HeapDump.Listener defaultHeapDumpListener() {
     return new ServiceHeapDumpListener(context, DisplayLeakService.class);
   }
-
+  
   @Override protected ExcludedRefs defaultExcludedRefs() {
     return AndroidExcludedRefs.createAppDefaults().build();
   }

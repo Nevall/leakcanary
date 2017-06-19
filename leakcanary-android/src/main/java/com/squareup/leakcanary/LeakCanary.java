@@ -35,7 +35,14 @@ public final class LeakCanary {
   /**
    * Creates a {@link RefWatcher} that works out of the box, and starts watching activity
    * references (on ICS+).
+   * 初始化入口,监控默认Activity对象引用
+   * 1、通过AndroidRefWatcherBuilder创建RfWatcher
+   * 2、添加DumpHeap监听
+   * 3、添加过滤AOSP产生的内存泄露白名单
+   * 4、开始监听Activity对象
+   * 
    */
+  // TODO: 2017/2/10 LeakCanary入口  （1）
   public static RefWatcher install(Application application) {
     return refWatcher(application).listenerServiceClass(DisplayLeakService.class)
         .excludedRefs(AndroidExcludedRefs.createAppDefaults().build())
@@ -47,6 +54,7 @@ public final class LeakCanary {
     return new AndroidRefWatcherBuilder(context);
   }
 
+  /*设置是否显示Notification提示*/
   public static void enableDisplayLeakActivity(Context context) {
     setEnabled(context, DisplayLeakActivity.class, true);
   }
@@ -55,13 +63,16 @@ public final class LeakCanary {
    * If you build a {@link RefWatcher} with a {@link AndroidHeapDumper} that has a custom {@link
    * LeakDirectoryProvider}, then you should also call this method to make sure the activity in
    * charge of displaying leaks can find those on the file system.
+   * 设置提供HeapDumper文件路径
    */
   public static void setDisplayLeakActivityDirectoryProvider(
       LeakDirectoryProvider leakDirectoryProvider) {
     DisplayLeakActivity.setLeakDirectoryProvider(leakDirectoryProvider);
   }
 
-  /** Returns a string representation of the result of a heap analysis. */
+  /** Returns a string representation of the result of a heap analysis.
+   * 解析内存泄漏分析结果,转换为字符串*/
+  // TODO: 2017/2/11 解析内存泄漏分析结果,转换为字符串 (15-4)
   public static String leakInfo(Context context, HeapDump heapDump, AnalysisResult result,
       boolean detailed) {
     PackageManager packageManager = context.getPackageManager();
@@ -140,6 +151,7 @@ public final class LeakCanary {
   /**
    * Whether the current process is the process running the {@link HeapAnalyzerService}, which is
    * a different process than the normal app process.
+   * 判断是否在分析数据进程
    */
   public static boolean isInAnalyzerProcess(Context context) {
     return isInServiceProcess(context, HeapAnalyzerService.class);

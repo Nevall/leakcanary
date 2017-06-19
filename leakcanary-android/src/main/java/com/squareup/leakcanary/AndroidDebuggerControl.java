@@ -16,7 +16,8 @@
 package com.squareup.leakcanary;
 
 import android.os.Debug;
-
+/*Debugger控制类
+* 正在Debug 时跳过内存泄露的监控*/
 public final class AndroidDebuggerControl implements DebuggerControl {
   @Override public boolean isDebuggerAttached() {
     return Debug.isDebuggerConnected();

@@ -33,14 +33,15 @@ android {
   buildToolsVersion rootProject.ext.buildToolsVersion
   defaultConfig {
     minSdkVersion rootProject.ext.minSdkVersion
+    targetSdkVersion rootProject.ext.targetSdkVersion
   }
   dexOptions {
     javaMaxHeapSize '2048M'
   }
   lintOptions {
     disable 'GoogleAppIndexingWarning'
-    error 'ObsoleteSdkInt'
   }
+    buildToolsVersion '25.0.0'
 }
 
 task sourceJar(type: Jar) {

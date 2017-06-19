@@ -46,6 +46,7 @@ public final class RefWatcher {
   private final HeapDump.Listener heapdumpListener;
   private final ExcludedRefs excludedRefs;
 
+  // TODO: 2017/2/10  初始化RefWatch对象 （6）
   RefWatcher(WatchExecutor watchExecutor, DebuggerControl debuggerControl, GcTrigger gcTrigger,
       HeapDumper heapDumper, HeapDump.Listener heapdumpListener, ExcludedRefs excludedRefs) {
     this.watchExecutor = checkNotNull(watchExecutor, "watchExecutor");
@@ -71,11 +72,13 @@ public final class RefWatcher {
    * Watches the provided references and checks if it can be GCed. This method is non blocking,
    * the check is done on the {@link WatchExecutor} this {@link RefWatcher} has been constructed
    * with.
-   *
+   * 监控对象应用引用
+   * 
    * @param referenceName An logical identifier for the watched object.
    */
+  // TODO: 2017/2/10 监控引用对象 （9）
   public void watch(Object watchedReference, String referenceName) {
-    if (this == DISABLED) {
+    if (this == DISABLED) {/*正在Debug时，直接通过*/
       return;
     }
     checkNotNull(watchedReference, "watchedReference");
@@ -83,47 +86,48 @@ public final class RefWatcher {
     final long watchStartNanoTime = System.nanoTime();
     String key = UUID.randomUUID().toString();
     retainedKeys.add(key);
-    final KeyedWeakReference reference =
+    final KeyedWeakReference reference = /*在监控对象内创建一个弱引用，*/
         new KeyedWeakReference(watchedReference, key, referenceName, queue);
-
+    /*检测对象是否被垃圾回收*/
     ensureGoneAsync(watchStartNanoTime, reference);
   }
 
   private void ensureGoneAsync(final long watchStartNanoTime, final KeyedWeakReference reference) {
-    watchExecutor.execute(new Retryable() {
+    watchExecutor.execute(new Retryable() {/*主线程空闲时，异步执行*/
       @Override public Retryable.Result run() {
         return ensureGone(reference, watchStartNanoTime);
       }
     });
   }
 
-  @SuppressWarnings("ReferenceEquality") // Explicitly checking for named null.
+  // TODO: 2017/2/10 检测对象是否被垃圾回收 （11）
   Retryable.Result ensureGone(final KeyedWeakReference reference, final long watchStartNanoTime) {
     long gcStartNanoTime = System.nanoTime();
     long watchDurationMs = NANOSECONDS.toMillis(gcStartNanoTime - watchStartNanoTime);
 
-    removeWeaklyReachableReferences();
+    removeWeaklyReachableReferences();/*移除弱引用*/
 
     if (debuggerControl.isDebuggerAttached()) {
       // The debugger can create false leaks.
       return RETRY;
     }
-    if (gone(reference)) {
+    if (gone(reference)) {/*当弱引用已已移除则通过*/
       return DONE;
     }
-    gcTrigger.runGc();
-    removeWeaklyReachableReferences();
-    if (!gone(reference)) {
+    gcTrigger.runGc();/*触发GC*/
+    removeWeaklyReachableReferences();/*移除弱引用*/
+    if (!gone(reference)) {/*如果还是强引用，可能存在内存泄露*/
       long startDumpHeap = System.nanoTime();
       long gcDurationMs = NANOSECONDS.toMillis(startDumpHeap - gcStartNanoTime);
 
-      File heapDumpFile = heapDumper.dumpHeap();
-      if (heapDumpFile == RETRY_LATER) {
+      File heapDumpFile = heapDumper.dumpHeap();/*创建堆内存镜像 DumpHeap*/
+      if (heapDumpFile == RETRY_LATER) {/*创建失败*/
         // Could not dump the heap.
         return RETRY;
       }
       long heapDumpDurationMs = NANOSECONDS.toMillis(System.nanoTime() - startDumpHeap);
-      heapdumpListener.analyze(
+      // TODO: 2017/2/11 HeapDump数据结构：(HeapDump文件，在监控对象内所创建的弱引用对象的UUID,监控对象名{默认为空字符串}，白名单，监控时长，Gc时长，HeapDump时长）
+      heapdumpListener.analyze(/*交给DumpHeap的监听，分析内存泄露*/
           new HeapDump(heapDumpFile, reference.key, reference.name, excludedRefs, watchDurationMs,
               gcDurationMs, heapDumpDurationMs));
     }
@@ -137,7 +141,7 @@ public final class RefWatcher {
   private void removeWeaklyReachableReferences() {
     // WeakReferences are enqueued as soon as the object to which they point to becomes weakly
     // reachable. This is before finalization or garbage collection has actually happened.
-    KeyedWeakReference ref;
+    KeyedWeakReference ref;/*已经移除的弱引用将存入ReferenceQueue队列*/
     while ((ref = (KeyedWeakReference) queue.poll()) != null) {
       retainedKeys.remove(ref.key);
     }

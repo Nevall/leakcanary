@@ -22,6 +22,7 @@ import java.util.EnumSet;
 
 import static android.os.Build.MANUFACTURER;
 import static android.os.Build.VERSION.SDK_INT;
+import static android.os.Build.VERSION_CODES.ECLAIR;
 import static android.os.Build.VERSION_CODES.ICE_CREAM_SANDWICH;
 import static android.os.Build.VERSION_CODES.ICE_CREAM_SANDWICH_MR1;
 import static android.os.Build.VERSION_CODES.JELLY_BEAN;
@@ -29,17 +30,11 @@ import static android.os.Build.VERSION_CODES.KITKAT;
 import static android.os.Build.VERSION_CODES.LOLLIPOP;
 import static android.os.Build.VERSION_CODES.LOLLIPOP_MR1;
 import static android.os.Build.VERSION_CODES.M;
-import static android.os.Build.VERSION_CODES.N;
-import static android.os.Build.VERSION_CODES.N_MR1;
 import static com.squareup.leakcanary.AndroidWatchExecutor.LEAK_CANARY_THREAD_NAME;
-import static com.squareup.leakcanary.internal.LeakCanaryInternals.HUAWEI;
-import static com.squareup.leakcanary.internal.LeakCanaryInternals.LENOVO;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.LG;
-import static com.squareup.leakcanary.internal.LeakCanaryInternals.MEIZU;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.MOTOROLA;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.NVIDIA;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.SAMSUNG;
-
 
 /**
  * This class is a work in progress. You can help by reporting leak traces that seem to be caused
@@ -52,8 +47,10 @@ import static com.squareup.leakcanary.internal.LeakCanaryInternals.SAMSUNG;
  * Most app developers should use {@link #createAppDefaults()}. However, you can also pick the
  * leaks you want to ignore by creating an {@link EnumSet} that matches your needs and calling
  * {@link #createBuilder(EnumSet)}
+ * AOSP或厂商所产生的内存泄露清单
+ * 可通过createAppDefaults()方法创建默认内存泄露白名单
+ * 也可以通过创建一个EnumSet自己添加所需内存泄露白名单
  */
-@SuppressWarnings({ "unused", "WeakerAccess" }) // Public API.
 public enum AndroidExcludedRefs {
 
   // ######## Android SDK Excluded refs ########
@@ -119,7 +116,7 @@ public enum AndroidExcludedRefs {
     }
   },
 
-  BLOCKING_QUEUE(SDK_INT <= LOLLIPOP) {
+  BLOCKING_QUEUE(SDK_INT < LOLLIPOP) {
     @Override void add(ExcludedRefs.Builder excluded) {
       String reason = "Prior to ART, a thread waiting on a blocking queue will leak the last"
           + " dequeued object as a stack local reference. So when a HandlerThread becomes idle, it"
@@ -143,7 +140,7 @@ public enum AndroidExcludedRefs {
     }
   },
 
-  INPUT_METHOD_MANAGER__SERVED_VIEW(SDK_INT >= ICE_CREAM_SANDWICH_MR1 && SDK_INT <= N_MR1) {
+  INPUT_METHOD_MANAGER__SERVED_VIEW(SDK_INT >= ICE_CREAM_SANDWICH_MR1 && SDK_INT <= M) {
     @Override void add(ExcludedRefs.Builder excluded) {
       String reason = "When we detach a view that receives keyboard input, the InputMethodManager"
           + " leaks a reference to it until a new view asks for keyboard input."
@@ -179,7 +176,7 @@ public enum AndroidExcludedRefs {
     }
   },
 
-  SPELL_CHECKER_SESSION((SDK_INT >= JELLY_BEAN && SDK_INT <= LOLLIPOP_MR1) || SDK_INT >= N) {
+  SPELL_CHECKER_SESSION(SDK_INT >= JELLY_BEAN && SDK_INT <= LOLLIPOP_MR1) {
     @Override void add(ExcludedRefs.Builder excluded) {
       excluded.instanceField("android.view.textservice.SpellCheckerSession$1", "this$0")
           .reason("SpellCheckerSessionListenerImpl.mHandler is leaking destroyed Activity when the"
@@ -211,7 +208,7 @@ public enum AndroidExcludedRefs {
     }
   },
 
-  ACCOUNT_MANAGER(SDK_INT <= LOLLIPOP_MR1) {
+  ACCOUNT_MANAGER(SDK_INT > ECLAIR && SDK_INT <= LOLLIPOP_MR1) {
     @Override void add(ExcludedRefs.Builder excluded) {
       excluded.instanceField("android.accounts.AccountManager$AmsTask$Response", "this$1")
           .reason("AccountManager$AmsTask$Response is a stub and is held in memory by native code,"
@@ -311,14 +308,6 @@ public enum AndroidExcludedRefs {
 
   // ######## Manufacturer specific Excluded refs ########
 
-  INSTRUMENTATION_RECOMMEND_ACTIVITY(MEIZU.equals(MANUFACTURER) && SDK_INT >= LOLLIPOP && SDK_INT <= LOLLIPOP_MR1) {
-    @Override void add(ExcludedRefs.Builder excluded) {
-      excluded.staticField("android.app.Instrumentation", "mRecommendActivity")
-              .reason("Instrumentation would leak com.android.internal.app.RecommendActivity (in framework.jar)"
-                  + " in Meizu FlymeOS 4.5 and above, which is based on Android 5.0 and above");
-    }
-  },
-
   DEVICE_POLICY_MANAGER__SETTINGS_OBSERVER(
       MOTOROLA.equals(MANUFACTURER) && SDK_INT >= KITKAT && SDK_INT <= LOLLIPOP_MR1) {
     @Override void add(ExcludedRefs.Builder excluded) {
@@ -340,14 +329,6 @@ public enum AndroidExcludedRefs {
     }
   },
 
-  GESTURE_BOOST_MANAGER(HUAWEI.equals(MANUFACTURER) && SDK_INT >= N && SDK_INT <= N_MR1) {
-    @Override void add(ExcludedRefs.Builder excluded) {
-      excluded.staticField("android.gestureboost.GestureBoostManager", "mContext")
-          .reason("GestureBoostManager is a static singleton that leaks an activity context."
-          + "Fix: https://github.com/square/leakcanary/issues/696#issuecomment-296420756");
-    }
-  },
-
   CLIPBOARD_UI_MANAGER__SINSTANCE(
       SAMSUNG.equals(MANUFACTURER) && SDK_INT >= KITKAT && SDK_INT <= LOLLIPOP) {
     @Override void add(ExcludedRefs.Builder excluded) {
@@ -360,37 +341,12 @@ public enum AndroidExcludedRefs {
     }
   },
 
-  SEM_CLIPBOARD_MANAGER__MCONTEXT(
-      SAMSUNG.equals(MANUFACTURER) && SDK_INT >= KITKAT && SDK_INT <= N) {
-    @Override void add(ExcludedRefs.Builder excluded) {
-      excluded.instanceField("com.samsung.android.content.clipboard.SemClipboardManager",
-          "mContext")
-          .reason("SemClipboardManager is held in memory by an anonymous inner class "
-              + "implementation of android.os.Binder, thereby leaking an activity context.");
-    }
-  },
-
-  SEM_EMERGENCY_MANAGER__MCONTEXT(
-      SAMSUNG.equals(MANUFACTURER) && SDK_INT >= KITKAT && SDK_INT <= N) {
-    @Override void add(ExcludedRefs.Builder excluded) {
-      excluded.instanceField("com.samsung.android.emergencymode.SemEmergencyManager", "mContext")
-          .reason("SemEmergencyManager is a static singleton that leaks a DecorContext.");
-    }
-  },
-
   BUBBLE_POPUP_HELPER__SHELPER(
       LG.equals(MANUFACTURER) && SDK_INT >= KITKAT && SDK_INT <= LOLLIPOP) {
     @Override void add(ExcludedRefs.Builder excluded) {
       excluded.staticField("android.widget.BubblePopupHelper", "sHelper")
           .reason("A static helper for EditText bubble popups leaks a reference to the latest"
               + "focused view.");
-    }
-  },
-
-  LGCONTEXT__MCONTEXT(LG.equals(MANUFACTURER) && SDK_INT == LOLLIPOP) {
-    @Override void add(ExcludedRefs.Builder excluded) {
-      excluded.instanceField("com.lge.systemservice.core.LGContext", "mContext")
-          .reason("LGContext is a static singleton that leaks an activity context.");
     }
   },
 
@@ -413,7 +369,7 @@ public enum AndroidExcludedRefs {
   },
 
   TEXT_VIEW__MLAST_HOVERED_VIEW(
-      SAMSUNG.equals(MANUFACTURER) && SDK_INT >= KITKAT && SDK_INT <= LOLLIPOP_MR1) {
+      SAMSUNG.equals(MANUFACTURER) && SDK_INT >= KITKAT && SDK_INT <= LOLLIPOP) {
     @Override void add(ExcludedRefs.Builder excluded) {
       excluded.staticField("android.widget.TextView", "mLastHoveredView")
           .reason("mLastHoveredView is a static field in TextView that leaks the last hovered"
@@ -448,15 +404,6 @@ public enum AndroidExcludedRefs {
               + " ViewConfiguration instance that has a context that is the activity."
               + " Observed here: https://github.com/square/leakcanary/issues"
               + "/1#issuecomment-100324683");
-    }
-  },
-
-  SYSTEM_SENSOR_MANAGER_LENOVO(LENOVO.equals(MANUFACTURER) && SDK_INT == KITKAT) {
-    @Override void add(ExcludedRefs.Builder excluded) {
-      excluded.staticField("android.hardware.SystemSensorManager", "mAppContextImpl")
-              .reason("Lenovo specific leak. SystemSensorManager stores a reference to context "
-                      + "in a static field in its constructor. Found on LENOVO 4.4.2. "
-                      + "Fix: use application context to get SensorManager");
     }
   },
 
@@ -539,9 +486,11 @@ public enum AndroidExcludedRefs {
    * doesn't mean there is no memory leak, to the contrary. However, some leaks are caused by bugs
    * in AOSP or manufacturer forks of AOSP. In such cases, there is very little we can do as app
    * developers except by resorting to serious hacks, so we remove the noise caused by those leaks.
+   * 创建ASOP内存泄露白名单
    */
+  // TODO: 2017/2/10 创建AOSP内存泄露白名单 （3）
   public static ExcludedRefs.Builder createAppDefaults() {
-    return createBuilder(EnumSet.allOf(AndroidExcludedRefs.class));
+    return createBuilder(EnumSet.allOf(AndroidExcludedRefs.class));/*添加本类中所有枚举白名单数据*/
   }
 
   public static ExcludedRefs.Builder createBuilder(EnumSet<AndroidExcludedRefs> refs) {

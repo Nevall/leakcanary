@@ -24,7 +24,7 @@ import android.util.AttributeSet;
 import android.view.View;
 
 import static android.graphics.Bitmap.Config.ARGB_8888;
-
+/*自定义View*/
 public final class DisplayLeakConnectorView extends View {
 
   private static final Paint iconPaint = new Paint(Paint.ANTI_ALIAS_FLAG);

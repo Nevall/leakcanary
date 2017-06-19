@@ -33,7 +33,7 @@ import java.util.List;
 import static com.squareup.leakcanary.LeakTraceElement.Holder.ARRAY;
 import static com.squareup.leakcanary.LeakTraceElement.Holder.THREAD;
 import static com.squareup.leakcanary.LeakTraceElement.Type.STATIC_FIELD;
-
+/*自定义Detail 页面Adapter*/
 final class DisplayLeakAdapter extends BaseAdapter {
 
   private static final int TOP_ROW = 0;
@@ -196,8 +196,7 @@ final class DisplayLeakAdapter extends BaseAdapter {
     return position;
   }
 
-  @SuppressWarnings({ "unchecked", "TypeParameterUnusedInFormals" })
-  private static <T extends View> T findById(View view, int id) {
+  @SuppressWarnings("unchecked") private static <T extends View> T findById(View view, int id) {
     return (T) view.findViewById(id);
   }
 }

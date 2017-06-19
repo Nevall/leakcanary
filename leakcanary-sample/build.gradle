@@ -1,37 +1,43 @@
 apply plugin: 'com.android.application'
 
 dependencies {
-  debugCompile project(':leakcanary-android')
-  releaseCompile project(':leakcanary-android-no-op');
+    debugCompile project(':leakcanary-android')
+    releaseCompile project(':leakcanary-android-no-op');
+    compile project(path: ':leakcanary-android')
+    compile 'com.android.support:appcompat-v7:23.4.0'
 }
 
 android {
-  compileSdkVersion rootProject.ext.compileSdkVersion
-  buildToolsVersion rootProject.ext.buildToolsVersion
+    compileSdkVersion rootProject.ext.compileSdkVersion
+    buildToolsVersion rootProject.ext.buildToolsVersion
 
-  compileOptions {
-    sourceCompatibility rootProject.ext.javaVersion
-    targetCompatibility rootProject.ext.javaVersion
-  }
+    compileOptions {
+        sourceCompatibility rootProject.ext.javaVersion
+        targetCompatibility rootProject.ext.javaVersion
+    }
 
-  defaultConfig {
-    applicationId "com.example.leakcanary"
-    minSdkVersion rootProject.ext.minSdkVersion
-    targetSdkVersion rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "com.example.leakcanary"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.compileSdkVersion
 
-    versionCode 1
-    versionName "1.0"
-  }
+        versionCode 1
+        versionName "1.0"
+    }
 
-  buildTypes {
-    debug
-  }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
 
-  dexOptions {
-    dexInProcess false
-  }
+    dexOptions {
+        dexInProcess false
+    }
 
-  lintOptions {
-    disable 'GoogleAppIndexingWarning'
-  }
+    lintOptions {
+        disable 'GoogleAppIndexingWarning'
+    }
+    buildToolsVersion '25.0.0'
 }

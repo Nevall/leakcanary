@@ -27,6 +27,7 @@ import static java.util.Collections.unmodifiableList;
 import static java.util.Locale.US;
 
 /** Represents one reference in the chain of references that holds a leaking object in memory. */
+/*内存泄漏路径元素*/
 public final class LeakTraceElement implements Serializable {
 
   public enum Type {

@@ -1,7 +1,7 @@
 package com.squareup.leakcanary;
 
 import java.io.Serializable;
-
+/*排除监控实体类*/
 public final class Exclusion implements Serializable {
   public final String name;
   public final String reason;

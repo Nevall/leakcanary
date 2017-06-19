@@ -24,6 +24,7 @@ import static java.util.Collections.unmodifiableList;
 /**
  * A chain of references that constitute the shortest strong reference path from a leaking instance
  * to the GC roots. Fixing the leak usually means breaking one of the references in that chain.
+ * 内存泄漏路径
  */
 public final class LeakTrace implements Serializable {
 

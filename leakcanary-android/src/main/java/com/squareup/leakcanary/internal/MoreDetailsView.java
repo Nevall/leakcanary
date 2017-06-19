@@ -20,7 +20,7 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.util.AttributeSet;
 import android.view.View;
-
+/*自定义DetailsView*/
 public final class MoreDetailsView extends View {
 
   private static final Paint iconPaint = new Paint(Paint.ANTI_ALIAS_FLAG);

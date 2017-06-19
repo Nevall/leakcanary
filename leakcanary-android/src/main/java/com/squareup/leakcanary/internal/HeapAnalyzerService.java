@@ -33,6 +33,8 @@ public final class HeapAnalyzerService extends IntentService {
   private static final String LISTENER_CLASS_EXTRA = "listener_class_extra";
   private static final String HEAPDUMP_EXTRA = "heapdump_extra";
 
+  /*内存泄露，启动分析内存泄露的Service */
+  // TODO: 2017/2/10 内存泄露，启动分析内存泄露的Service (14-1)
   public static void runAnalysis(Context context, HeapDump heapDump,
       Class<? extends AbstractAnalysisResultService> listenerServiceClass) {
     Intent intent = new Intent(context, HeapAnalyzerService.class);
@@ -45,17 +47,19 @@ public final class HeapAnalyzerService extends IntentService {
     super(HeapAnalyzerService.class.getSimpleName());
   }
 
+  // TODO: 2017/2/10 20:52 分析内存泄露 （14-2）
   @Override protected void onHandleIntent(Intent intent) {
     if (intent == null) {
       CanaryLog.d("HeapAnalyzerService received a null intent, ignoring.");
       return;
     }
-    String listenerClassName = intent.getStringExtra(LISTENER_CLASS_EXTRA);
-    HeapDump heapDump = (HeapDump) intent.getSerializableExtra(HEAPDUMP_EXTRA);
+    String listenerClassName = intent.getStringExtra(LISTENER_CLASS_EXTRA);/*内存泄漏分析结果回调监听*/
+    HeapDump heapDump = (HeapDump) intent.getSerializableExtra(HEAPDUMP_EXTRA);/*内存泄漏的HeapDump文件*/
 
-    HeapAnalyzer heapAnalyzer = new HeapAnalyzer(heapDump.excludedRefs);
+    HeapAnalyzer heapAnalyzer = new HeapAnalyzer(heapDump.excludedRefs);/*创建内存分析类*/
 
-    AnalysisResult result = heapAnalyzer.checkForLeak(heapDump.heapDumpFile, heapDump.referenceKey);
+    AnalysisResult result = heapAnalyzer.checkForLeak(heapDump.heapDumpFile, heapDump.referenceKey);/*内存泄露结果*/
+    /*回调监听器，返回内存泄漏分析结果*/
     AbstractAnalysisResultService.sendResultToListener(this, listenerClassName, heapDump, result);
   }
 }

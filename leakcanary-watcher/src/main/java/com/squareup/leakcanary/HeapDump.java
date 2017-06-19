@@ -20,7 +20,10 @@ import java.io.Serializable;
 
 import static com.squareup.leakcanary.Preconditions.checkNotNull;
 
-/** Data structure holding information about a heap dump. */
+/** Data structure holding information about a heap dump.
+ * HeapDump实体类 
+ * TODO: 2017/2/11 HeapDump数据结构：(HeapDump文件，在监控对象内所创建的弱引用对象的UUID,监控对象名{默认为空字符串}，白名单，监控时长，Gc时长，HeapDump时长）
+ * */
 public final class HeapDump implements Serializable {
 
   /** Receives a heap dump to analyze. */

@@ -14,7 +14,7 @@ repositories {
 }
 
 dependencies {
-  compile 'com.squareup.haha:haha:2.0.3'
+   compile 'com.squareup.haha:haha:2.0.3'
   compile project(':leakcanary-watcher')
   testCompile 'junit:junit:4.12'
   testCompile 'org.assertj:assertj-core:1.7.0'
@@ -36,10 +36,12 @@ android {
   buildToolsVersion rootProject.ext.buildToolsVersion
   defaultConfig {
     minSdkVersion rootProject.ext.minSdkVersion
+    targetSdkVersion rootProject.ext.targetSdkVersion
   }
   lintOptions {
     disable 'GoogleAppIndexingWarning'
   }
+  buildToolsVersion '25.0.0'
 }
 
 task sourceJar(type: Jar) {

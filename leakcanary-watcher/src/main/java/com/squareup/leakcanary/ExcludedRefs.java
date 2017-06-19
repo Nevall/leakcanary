@@ -29,6 +29,7 @@ import static java.util.Collections.unmodifiableMap;
  * This class lets you ignore known memory leaks that you known about. If the shortest path
  * matches {@link ExcludedRefs}, than the heap analyzer should look for a longer path with nothing
  * matching in {@link ExcludedRefs}.
+ * 内存泄露白名单实体类
  */
 public final class ExcludedRefs implements Serializable {
 
@@ -185,7 +186,7 @@ public final class ExcludedRefs implements Serializable {
       return this;
     }
 
-    @Override public ExcludedRefs build() {
+    public ExcludedRefs build() {
       return new ExcludedRefs(this);
     }
   }
